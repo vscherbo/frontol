@@ -6,6 +6,7 @@ import logging
 import configparser
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
+import psycopg2
 
 log_format = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()] %(levelname)-7s | %(asctime)-15s | %(message)s'
 
@@ -22,6 +23,7 @@ def import_trans():
                 fields = ';'.join(d[0:7])
                 tail = ','.join(d[7:])
                 fcsv.write("{};{}\n".format(fields, tail))
+        # curs.
     except Exception:
         logging.exception('import_trans')
 
@@ -60,12 +62,18 @@ if __name__ == '__main__':
     trans_dir = config['dirs']['trans_dir']
     csv_dir = config['dirs']['csv_dir']
     log_dir = config['dirs']['log_dir']
+    numeric_level = logging.INFO
+    logging.basicConfig(filename=log_dir + '/ftd.log', format=log_format, level=numeric_level)
+    logging.info('config read')
 
     observer = Observer()
     observer.schedule(FT_flag_handler(), path=watch_dir)
     observer.start()
-    numeric_level = logging.INFO
-    logging.basicConfig(filename=log_dir + '/ftd.log', format=log_format, level=numeric_level)
+
+    pg_srv = config['PG']['pg_srv']
+    conn = psycopg2.connect("host='{}' dbname='arc_energo' user='arc_energo'".format(pg_srv))  # password='XXXX' - .pgpass
+    curs = conn.cursor()
+    logging.info('PG {} connected'.format(pg_srv))
 
     try:
         while True:
