@@ -1,0 +1,5 @@
+[dirs]
+watch_dir=/opt/atol/export_catalog
+trans_dir=/opt/atol/import_receipts
+csv_dir=/opt/ftd/trans
+log_dir=/opt/ftd/logs
