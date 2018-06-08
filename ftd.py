@@ -7,23 +7,40 @@ import configparser
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 import psycopg2
+import io
+import shutil
 
 log_format = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()] %(levelname)-7s | %(asctime)-15s | %(message)s'
 
-# \copy cash.frontol_trans from 'trans/output.csv' with (format 'csv', header false, delimiter ';');
-
 def import_trans():
-    global watch_dir
-    global trans_dir
-    global csv_dir
     try:
-        with open(trans_dir + '/frontol_receipts.txt', 'r') as t, open(csv_dir + '/output.csv', 'w') as fcsv :
-            for l in t.readlines()[3:]:
+        src_file = trans_dir + '/frontol_receipts.txt'
+        with open(src_file, 'r') as t, open(csv_dir + '/output.csv', 'w') as fcsv :
+            csv_list = []
+            lines = t.readlines()
+            report_num = lines[2].strip()
+            logging.info('report_num={}'.format(report_num))
+            for l in lines[3:]:
                 d = l.strip().split(';')
                 fields = ';'.join(d[0:7])
                 tail = ','.join(d[7:])
-                fcsv.write("{};{}\n".format(fields, tail))
-        # curs.
+                csv_l = "{};{}".format(fields, tail)
+                fcsv.write(csv_l + '\n')
+                csv_list.append(csv_l)
+        logging.info(csv_list)
+        csv_io = io.StringIO('\n'.join(csv_list))
+        try:
+            curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH CSV delimiter ';';", csv_io)
+            conn.commit()
+            logging.info('\COPY commited')
+        except Exception:
+            logging.exception('\COPY command')
+        else:
+            try:
+                shutil.move(src_file, '{}/frontol_receipts.txt-{}'.format(archive_dir, report_num)) 
+                logging.info('moved {} to {}/frontol_receipts.txt-{}'.format(src_file, archive_dir, report_num)) 
+            except:
+                logging.exception('move to archive')
     except Exception:
         logging.exception('import_trans')
 
@@ -41,7 +58,7 @@ class FT_flag_handler(PatternMatchingEventHandler):
         """
         # the file will be processed there
         logging.info('file {} {}'.format(event.src_path, event.event_type))
-        if 'frontol_receipts_flag.txt' in event.src_path  and event.event_type == 'modified':
+        if 'frontol_receipts_flag.txt' in event.src_path  and event.event_type == 'modified':  # or 'deleted'?
             logging.info('start import transactions')
             import_trans()
 
@@ -62,6 +79,7 @@ if __name__ == '__main__':
     trans_dir = config['dirs']['trans_dir']
     csv_dir = config['dirs']['csv_dir']
     log_dir = config['dirs']['log_dir']
+    archive_dir = config['dirs']['archive_dir']
     numeric_level = logging.INFO
     logging.basicConfig(filename=log_dir + '/ftd.log', format=log_format, level=numeric_level)
     logging.info('config read')
@@ -72,6 +90,7 @@ if __name__ == '__main__':
 
     pg_srv = config['PG']['pg_srv']
     conn = psycopg2.connect("host='{}' dbname='arc_energo' user='arc_energo'".format(pg_srv))  # password='XXXX' - .pgpass
+    conn.set_session(autocommit=True)
     curs = conn.cursor()
     logging.info('PG {} connected'.format(pg_srv))
 
@@ -79,6 +98,7 @@ if __name__ == '__main__':
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        logging.info('Exiting')
         observer.stop()
 
     observer.join()
