@@ -45,7 +45,8 @@ def import_trans():
         logging.exception('import_trans')
 
 class FT_flag_handler(PatternMatchingEventHandler):
-    patterns = ["*/frontol_*_flag.txt"]
+    # patterns = ["*/frontol_*_flag.txt"]
+    patterns = ["*"]
 
     def process(self, event):
         """
@@ -57,12 +58,17 @@ class FT_flag_handler(PatternMatchingEventHandler):
             path/to/observed/file
         """
         # the file will be processed there
-        logging.info('file {} {}'.format(event.src_path, event.event_type))
-        if 'frontol_receipts_flag.txt' in event.src_path  and event.event_type == 'modified':  # or 'deleted'?
+        if not event.is_directory:
+            logging.info('file {} {}'.format(event.src_path, event.event_type))
+        if 'frontol_receipts_flag.txt' in event.src_path \
+           and (event.event_type == 'moved' or event.event_type == 'deleted'):
             logging.info('start import transactions')
             import_trans()
 
     def on_modified(self, event):
+        self.process(event)
+
+    def on_moved(self, event):
         self.process(event)
 
     def on_created(self, event):
