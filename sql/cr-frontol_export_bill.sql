@@ -13,9 +13,12 @@ SELECT 10 AS weight, cash.frontol_order_header(arg_bill_no) AS txt
 union
 SELECT 20 AS weight, cash.frontol_order_items(arg_bill_no) AS txt
 ORDER BY weight) AS f) INTO arg_order;
-   -- RAISE NOTICE 'arg_order=%', arg_order;
-   res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', arc_const('frontol_path'), arg_bill_no), arg_order);
+    -- RAISE NOTICE 'arg_order=%', arg_order;
+    res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', arc_const('frontol_path'), arg_bill_no), arg_order);
+    if res then
+        insert into cash.receipt_queue(bill_no) values(arg_bill_no);
+    end if;
 
-   RAISE NOTICE 'res=%', res;
-   RETURN res;
+    RAISE NOTICE 'res=%', res;
+    RETURN res;
 end;$function$
