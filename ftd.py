@@ -21,7 +21,7 @@ def import_trans():
             report_num = lines[2].strip()
             logging.info('report_num={}'.format(report_num))
             for l in lines[3:]:
-                d = l.strip().split(';')
+                d = l.strip().replace(',', '.').split(';')  # decimal point instead of ','
                 fields = ';'.join(d[0:7])
                 tail = ','.join(d[7:])
                 csv_l = "{};{}".format(fields, tail)
