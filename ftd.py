@@ -15,7 +15,7 @@ log_format = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()] %(levelname)-7s |
 def import_trans():
     try:
         src_file = trans_dir + '/frontol_receipts.txt'
-        with open(src_file, 'r') as t, open(csv_dir + '/output.csv', 'w') as fcsv :
+        with open(src_file, 'r', encoding="cp1251") as t, open(csv_dir + '/output.csv', 'w') as fcsv :
             csv_list = []
             lines = t.readlines()
             report_num = lines[2].strip()
