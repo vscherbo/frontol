@@ -4,7 +4,7 @@
 
 CREATE TABLE cash.receipt_queue (
 	id serial NOT NULL,
-	bill_no int4 NULL,
+	bill_no int4 NOT NULL,
 	dt_insert timestamp NOT NULL DEFAULT clock_timestamp(),
 	status int4 NOT NULL DEFAULT 0,
 	import_result varchar NULL,
