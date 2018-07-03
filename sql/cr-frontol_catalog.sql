@@ -1,17 +1,17 @@
 -- Drop table
 
--- DROP TABLE cash.frontol_catalog
+-- DROP TABLE cash.frontol_catalog;
 
 CREATE TABLE cash.frontol_catalog (
 	ft_code varchar(10) NOT NULL,
 	ft_barcode varchar NULL,
 	ft_name varchar(128) NULL,
 	ft_print_name varchar(128) NULL,
-	ft_price numeric(2) NULL DEFAULT 0.00,
-	ft_quantity numeric(4) NULL DEFAULT 0.00,
+	ft_price numeric NULL DEFAULT 0.00,
+	ft_quantity numeric NULL DEFAULT 0.00,
 	ft_filler07 varchar NULL DEFAULT 0,
 	ft_flags varchar NULL DEFAULT 0,
-	ft_min_price numeric(2) NULL DEFAULT 0.00,
+	ft_min_price numeric NULL DEFAULT 0.00,
 	ft_filler10 varchar NULL DEFAULT 0,
 	ft_scheme_code varchar(12) NULL DEFAULT ''::character varying,
 	ft_variant int4 NULL DEFAULT 0,
