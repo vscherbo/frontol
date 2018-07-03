@@ -4,7 +4,10 @@
 
 CREATE OR REPLACE FUNCTION cash.fntr_parse_transaction()
   RETURNS trigger AS
-$BODY$BEGIN
+$BODY$
+DECLARE
+loc_bill_no integer;
+BEGIN
 
 WITH rcpt AS (SELECT ft_doc_num, SUM(ft_sum)AS ft_sum, payment_type
     FROM cash.vw_ft_fisc_payment 
@@ -24,7 +27,9 @@ FROM cash.vw_ft_close_doc c
     CROSS JOIN rcpt p -- ON p.ft_doc_num = NEW.ft_doc_num
     WHERE c.ft_doc_num = NEW.ft_doc_num ;
 
-UPDATE cash.receipt_queue SET status=1 WHERE bill_no = (SELECT order_id::integer FROM cash.vw_ft_close_doc c WHERE c.ft_doc_num = NEW.ft_doc_num );
+SELECT order_id::integer INTO loc_bill_no FROM cash.vw_ft_close_doc c WHERE c.ft_doc_num = NEW.ft_doc_num;
+UPDATE cash.receipt_queue SET status=1, dt_import=clock_timestamp() WHERE bill_no = loc_bill_no;
+UPDATE "Счета" SET "Накладная" = now()::date::timestamp, "Статус" = 10, "Отгружен" = 't', "Оплачен" = 't' WHERE "№ счета" = loc_bill_no;
 
 RETURN NEW;
 END;$BODY$
