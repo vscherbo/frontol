@@ -7,6 +7,7 @@ AS $function$
 declare
 arg_order text[];
 res BOOLEAN;
+loc_order_path text;
 BEGIN
 SELECT array(SELECT txt FROM (
 SELECT 10 AS weight, cash.frontol_order_header(arg_bill_no) AS txt
@@ -14,7 +15,13 @@ union
 SELECT 20 AS weight, cash.frontol_order_items(arg_bill_no) AS txt
 ORDER BY weight) AS f) INTO arg_order;
     -- RAISE NOTICE 'arg_order=%', arg_order;
-    res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', arc_const('frontol_path'), arg_bill_no), arg_order);
+    if pg_production() then
+        loc_order_path := arc_const('frontol_path');
+    else
+        loc_order_path := 'devel_frontol_orders';
+    end if;
+    -- res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', arc_const('frontol_path'), arg_bill_no), arg_order);
+    res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', loc_order_path, arg_bill_no), arg_order);
     if res then
         insert into cash.receipt_queue(bill_no) values(arg_bill_no);
     end if;
