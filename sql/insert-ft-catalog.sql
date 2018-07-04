@@ -1,5 +1,4 @@
 truncate table cash.frontol_catalog;
--- INSERT INTO cash.frontol_catalog(ft_code,ft_name,ft_print_name,ft_group_sign) VALUES (1, 'КИПиА', 'КИПиА', 0);
 
 WITH arc2ft AS (SELECT c."КодСодержания" ks
 , substring(
@@ -14,6 +13,6 @@ where "Активность"
 ORDER BY c."КодСодержания"
 -- limit 10
 )
-INSERT INTO cash.frontol_catalog(ft_code,ft_barcode,ft_name,ft_print_name,ft_price) (
-SELECT ks, ks, ft_name, ft_name, ft_price FROM arc2ft
+INSERT INTO cash.frontol_catalog(ft_code,ft_barcode,ft_name,ft_print_name,ft_price,ft_tax_group_code) (
+SELECT ks, ks, ft_name, ft_name, ft_price, 1 FROM arc2ft
 );
