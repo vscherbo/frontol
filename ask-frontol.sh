@@ -14,10 +14,10 @@ exec 1>>$LOG 2>&1
 [ -f $FLAG_FILE ] && { logmsg INFO "Previous $FLAG_FILE exists. Exiting"; exit 0; }
 
 EXPECT_FLAG=`/usr/bin/psql -qtAX -U arc_energo -c 'select exists (select * from cash.receipt_queue where status=0);'`
-logmsg INFO "EXPECT_FLAG=$EXPECT_FLAG"
 
 if [ +t == +$EXPECT_FLAG ]
 then
     echo '$$$NEWTRANSACTIONS' > $FLAG_FILE
+    logmsg INFO "EXPECT_FLAG=$EXPECT_FLAG"
 fi
 
