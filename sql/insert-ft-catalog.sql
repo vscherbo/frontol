@@ -14,5 +14,5 @@ ORDER BY c."КодСодержания"
 -- limit 10
 )
 INSERT INTO cash.frontol_catalog(ft_code,ft_barcode,ft_name,ft_print_name,ft_price,ft_tax_group_code) (
-SELECT ks, ks, ft_name, ft_name, ft_price, 1 FROM arc2ft
+SELECT ks, ks, ft_name, ft_name, ft_price, 4 FROM arc2ft
 );
