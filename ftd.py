@@ -9,13 +9,30 @@ from watchdog.events import PatternMatchingEventHandler
 import psycopg2
 import io
 import shutil
+import os
 
 log_format = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()] %(levelname)-7s | %(asctime)-15s | %(message)s'
+
+def remove_file(filename):
+    try:
+        os.remove(filename) 
+        logging.info('removed {}'.format(filename)) 
+    except:
+        logging.exception('remove failed')
+
+def move_file(src, dst):
+    try:
+        shutil.move(src, dst) 
+        logging.info('moved {} to {}'.format(src, dst)) 
+    except:
+        logging.exception('move failed')
+
 
 def import_trans():
     try:
         src_file = trans_dir + '/frontol_receipts.txt'
-        with open(src_file, 'r', encoding="cp1251") as t, open(csv_dir + '/output.csv', 'w') as fcsv :
+        out_file = csv_dir + '/output.csv'
+        with open(src_file, 'r', encoding="cp1251") as t, open(out_file, 'w') as fcsv :
             csv_list = []
             lines = t.readlines()
             report_num = lines[2].strip()
@@ -35,12 +52,10 @@ def import_trans():
             logging.info('\COPY commited')
         except Exception:
             logging.exception('\COPY command')
-        else:
-            try:
-                shutil.move(src_file, '{}/frontol_receipts.txt-{}'.format(archive_dir, report_num)) 
-                logging.info('moved {} to {}/frontol_receipts.txt-{}'.format(src_file, archive_dir, report_num)) 
-            except:
-                logging.exception('move to archive')
+            move_file(out_file, '{}/output-failed.csv-{:08}'.format(archive_dir, report_num)) 
+        else: # \COPY commited
+            remove_file(out_file)
+            move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
     except Exception:
         logging.exception('import_trans')
 
