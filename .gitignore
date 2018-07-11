@@ -3,3 +3,4 @@ opt/
 *.log
 *.conf
 test*
+*.csv
