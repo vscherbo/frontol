@@ -35,7 +35,7 @@ def import_trans():
         with open(src_file, 'r', encoding="cp1251") as t, open(out_file, 'w') as fcsv :
             csv_list = []
             lines = t.readlines()
-            report_num = lines[2].strip()
+            report_num = int(lines[2].strip())
             logging.info('report_num={}'.format(report_num))
             for l in lines[3:]:
                 d = l.strip().replace(',', '.').split(';')  # decimal point instead of ','
