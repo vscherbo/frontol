@@ -29,7 +29,7 @@ FROM cash.vw_ft_close_doc c
 
 SELECT order_id::integer INTO loc_bill_no FROM cash.vw_ft_close_doc c WHERE c.ft_doc_num = NEW.ft_doc_num;
 UPDATE cash.receipt_queue SET status=1, dt_import=clock_timestamp() WHERE bill_no = loc_bill_no;
-UPDATE "Счета" SET "Накладная" = now()::date::timestamp, "Статус" = 10, "Отгружен" = 't', "Оплачен" = 't' WHERE "№ счета" = loc_bill_no;
+UPDATE "Счета" SET "Накладная" = now()::date::timestamp, "Статус" = 10, "Отгружен" = 't', "Оплачен" = 't', ps_id = 4 WHERE "№ счета" = loc_bill_no;
 
 RETURN NEW;
 END;$BODY$
