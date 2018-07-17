@@ -37,25 +37,37 @@ def import_trans():
             lines = t.readlines()
             report_num = int(lines[2].strip())
             logging.info('report_num={}'.format(report_num))
+            curs.curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
+            last_ft_num = curs.fetchone()[0]
+            logging.info('last_ft_num={}'.format(last_ft_num))
+
             for l in lines[3:]:
-                d = l.strip().replace(',', '.').split(';')  # decimal point instead of ','
-                fields = ';'.join(d[0:7])
-                tail = ','.join(d[7:])
-                csv_l = "{};{}".format(fields, tail)
-                fcsv.write(csv_l + '\n')
-                csv_list.append(csv_l)
+                d = l.strip().replace(',', '.').split(';')  # decimal point instead of comma
+                ft_num = d[0]
+                logging.info('current ft_num={}'.format(ft_num))
+                if int(ft_num) <= int(last_ft_num):
+                    logging.info('from PAST ft_num={}'.format(ft_num))
+                else:
+                    fields = ';'.join(d[0:7])
+                    tail = ','.join(d[7:])
+                    csv_l = "{};{}".format(fields, tail)
+                    fcsv.write(csv_l + '\n')
+                    csv_list.append(csv_l)
         logging.info(csv_list)
-        csv_io = io.StringIO('\n'.join(csv_list))
-        try:
-            curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH CSV delimiter ';';", csv_io)
-            conn.commit()
-            logging.info('\COPY commited')
-        except Exception:
-            logging.exception('\COPY command')
-            move_file(out_file, '{}/output-failed.csv-{:08}'.format(archive_dir, report_num)) 
-        else: # \COPY commited
-            remove_file(out_file)
-            move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
+        if 0 == len(csv_list):
+            logging.info('An empty csv_list, skipping')
+        else:
+            csv_io = io.StringIO('\n'.join(csv_list))
+            try:
+                curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH CSV delimiter ';';", csv_io)
+                conn.commit()
+                logging.info('\COPY commited')
+            except Exception:
+                logging.exception('\COPY command')
+                move_file(out_file, '{}/output-failed.csv-{:08}'.format(archive_dir, report_num)) 
+            else: # \COPY commited
+                remove_file(out_file)
+                move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
     except Exception:
         logging.exception('import_trans')
 
