@@ -37,7 +37,7 @@ def import_trans():
             lines = t.readlines()
             report_num = int(lines[2].strip())
             logging.info('report_num={}'.format(report_num))
-            curs.curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
+            curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
             last_ft_num = curs.fetchone()[0]
             logging.info('last_ft_num={}'.format(last_ft_num))
 
