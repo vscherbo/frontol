@@ -56,6 +56,8 @@ def import_trans():
         logging.info(csv_list)
         if 0 == len(csv_list):
             logging.info('An empty csv_list, skipping')
+            remove_file(out_file)
+            move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
         else:
             csv_io = io.StringIO('\n'.join(csv_list))
             try:
