@@ -20,7 +20,7 @@ SELECT
     COALESCE (order_id::integer, cash.origin_order_id(NEW.ft_doc_num))
     , ft_date -- f36::date
     , p.ft_sum
-    , CASE WHEN '1' = p.payment_type THEN 4 WHEN '2' = p.payment_type THEN 5 ELSE -1 END AS ps_id2
+    , CASE WHEN '1' = p.payment_type THEN 4 WHEN '5' = p.payment_type THEN 5 ELSE -1 END AS ps_id2
     -- , 'Кассовый чек ' || c.ft_doc_num AS "Примечание"
     , cash.doc_title(c.ft_doc_num) AS "Примечание"
 FROM cash.vw_ft_close_doc c
