@@ -15,7 +15,7 @@ CREATE TABLE cash.frontol_catalog (
 	ft_filler10 varchar NULL DEFAULT 0,
 	ft_scheme_code varchar(12) NULL DEFAULT ''::character varying,
 	ft_variant int4 NULL DEFAULT 0,
-	ft_item_type int4 NULL DEFAULT 0, -- Признак предмета расчета:0 – не используется;1 – товар, кроме подакцизного;2 – подакцизный товар;3 – работа;4 – услуга;5 – товар, состоящий из нескольких признаков;6 – иной товар;7 – аванс, предоплата
+	ft_item_type int4 NULL DEFAULT 1, -- ФФД 1.05 Обязательный! Признак предмета расчета:0 – не используется;1 – товар, кроме подакцизного;2 – подакцизный товар;3 – работа;4 – услуга;5 – товар, состоящий из нескольких признаков;6 – иной товар;7 – аванс, предоплата
 	ft_barcode_coeff numeric NULL DEFAULT 1.0,
 	ft_filler15 varchar NULL DEFAULT 0,
 	ft_parent_group_code varchar(10) NULL,
