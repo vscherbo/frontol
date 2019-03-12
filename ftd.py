@@ -1,85 +1,119 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+    A data exchange with Frontol 5
+"""
 
 import time
 import logging
 import configparser
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
-import psycopg2
 import io
 import shutil
 import os
+import psycopg2
 
-log_format = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()] %(levelname)-7s | %(asctime)-15s | %(message)s'
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
+
+LOG_FORMAT = '[%(filename)-21s:%(lineno)4s - %(funcName)20s()]\
+ %(levelname)-7s | %(asctime)-15s | %(message)s'
+
 
 def remove_file(filename):
+    """
+    try to remove a file
+    """
     try:
-        os.remove(filename) 
-        logging.info('removed {}'.format(filename)) 
-    except:
+        os.remove(filename)
+        logging.info('removed %s', filename)
+    except BaseException:
         logging.exception('remove failed')
 
+
 def move_file(src, dst):
+    """
+    try to move a file
+    """
     try:
-        shutil.move(src, dst) 
-        logging.info('moved {} to {}'.format(src, dst)) 
-    except:
+        shutil.move(src, dst)
+        logging.info('moved %s to %s', src, dst)
+    except BaseException:
         logging.exception('move failed')
 
 
 def import_trans():
+    """
+    import Frontol transactions into PG
+    """
     try:
         src_file = trans_dir + '/frontol_receipts.txt'
         out_file = csv_dir + '/output.csv'
-        with open(src_file, 'r', encoding="cp1251") as t, open(out_file, 'w') as fcsv :
+        with open(src_file, 'r', encoding="cp1251") as tr_file,\
+                open(out_file, 'w') as fcsv:
             csv_list = []
-            lines = t.readlines()
-            report_num = int(lines[2].strip())
-            logging.info('report_num={}'.format(report_num))
-            curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
-            last_ft_num = curs.fetchone()[0]
-            logging.info('last_ft_num={}'.format(last_ft_num))
+            lines = tr_file.readlines()
+            try:
+                report_num = int(lines[2].strip())
+            except IndexError:
+                report_num = -1
+            else:
+                logging.info('report_num=%s', report_num)
+                curs.execute('SELECT ft_id FROM cash.frontol_trans\
+ order by ft_id desc limit 1;')
+                last_ft_num = curs.fetchone()[0]
+                logging.info('last_ft_num=%s', last_ft_num)
 
-            for l in lines[3:]:
-                d = l.strip().replace(',', '.').split(';')  # decimal point instead of comma
-                ft_num = d[0]
-                logging.info('current ft_num={}'.format(ft_num))
-                if int(ft_num) <= int(last_ft_num):
-                    logging.info('from PAST ft_num={}'.format(ft_num))
-                else:
-                    fields = ';'.join(d[0:7])
-                    tail = ','.join(d[7:])
-                    csv_l = "{};{}".format(fields, tail)
-                    fcsv.write(csv_l + '\n')
-                    csv_list.append(csv_l)
+                for line in lines[3:]:
+                    # decimal point instead of comma
+                    line_fields = line.strip().replace(',', '.').split(';')
+                    ft_num = line_fields[0]
+                    logging.info('current ft_num=%s', ft_num)
+                    if int(ft_num) <= int(last_ft_num):
+                        logging.info('from PAST ft_num=%s', ft_num)
+                    else:
+                        fields = ';'.join(line_fields[0:7])
+                        tail = ','.join(line_fields[7:])
+                        csv_l = "{};{}".format(fields, tail)
+                        fcsv.write(csv_l + '\n')
+                        csv_list.append(csv_l)
         logging.info(csv_list)
-        if 0 == len(csv_list):
-            logging.info('An empty csv_list, skipping')
-            remove_file(out_file)
-            move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
-        else:
+        if csv_list:
             csv_io = io.StringIO('\n'.join(csv_list))
             try:
-                curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH CSV delimiter ';';", csv_io)
+                curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH\
+ CSV delimiter ';';", csv_io)
                 conn.commit()
-                logging.info('\COPY commited')
-            except Exception:
-                logging.exception('\COPY command')
-                move_file(out_file, '{}/output-failed.csv-{:08}'.format(archive_dir, report_num)) 
-            else: # \COPY commited
+                logging.info('\\COPY commited')
+            except BaseException:
+                logging.exception('\\COPY command')
+                move_file(out_file,
+                          '{}/output-failed.csv-{:08}'.format(archive_dir,
+                                                              report_num))
+            else:  # \COPY commited
                 remove_file(out_file)
-                move_file(src_file, '{}/frontol_receipts.txt-{:08}'.format(archive_dir, report_num)) 
-    except Exception:
+                move_file(src_file,
+                          '{}/frontol_receipts.txt-{:08}'.format(archive_dir,
+                                                                 report_num))
+        else:
+            logging.info('An empty csv_list, skipping')
+            remove_file(out_file)
+            move_file(src_file,
+                      '{}/frontol_receipts.txt-{:08}'.format(archive_dir,
+                                                             report_num))
+    except BaseException:
         logging.exception('import_trans')
 
-class FT_flag_handler(PatternMatchingEventHandler):
+
+class FrontolFlagHandler(PatternMatchingEventHandler):
+    """
+    A handler of frontol's flag files
+    """
     # patterns = ["*/frontol_*_flag.txt"]
     patterns = ["*"]
 
     def process(self, event):
         """
-        event.event_type 
+        event.event_type
             'modified' | 'created' | 'moved' | 'deleted'
         event.is_directory
             True | False
@@ -88,7 +122,7 @@ class FT_flag_handler(PatternMatchingEventHandler):
         """
         # the file will be processed there
         if not event.is_directory:
-            logging.info('file {} {}'.format(event.src_path, event.event_type))
+            logging.info('file %s %s', event.src_path, event.event_type)
         if 'frontol_receipts_flag.txt' in event.src_path \
            and (event.event_type == 'moved' or event.event_type == 'deleted'):
             logging.info('start import transactions')
@@ -106,6 +140,7 @@ class FT_flag_handler(PatternMatchingEventHandler):
     def on_deleted(self, event):
         self.process(event)
 
+
 if __name__ == '__main__':
     conf_file_name = "ftd.conf"
     config = configparser.ConfigParser(allow_no_value=True)
@@ -116,18 +151,21 @@ if __name__ == '__main__':
     log_dir = config['dirs']['log_dir']
     archive_dir = config['dirs']['archive_dir']
     numeric_level = logging.INFO
-    logging.basicConfig(filename=log_dir + '/ftd.log', format=log_format, level=numeric_level)
+    logging.basicConfig(filename=log_dir + '/ftd.log', format=LOG_FORMAT,
+                        level=numeric_level)
     logging.info('config read')
 
     observer = Observer()
-    observer.schedule(FT_flag_handler(), path=watch_dir)
+    observer.schedule(FrontolFlagHandler(), path=watch_dir)
     observer.start()
 
     pg_srv = config['PG']['pg_srv']
-    conn = psycopg2.connect("host='{}' dbname='arc_energo' user='arc_energo'".format(pg_srv))  # password='XXXX' - .pgpass
+    # password='XXXX' - .pgpass
+    conn = psycopg2.connect("host='{}' dbname='arc_energo'\
+ user='arc_energo'".format(pg_srv))
     conn.set_session(autocommit=True)
     curs = conn.cursor()
-    logging.info('PG {} connected'.format(pg_srv))
+    logging.info('PG %s connected', pg_srv)
 
     try:
         while True:
