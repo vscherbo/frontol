@@ -10,18 +10,21 @@ loc_order_path text;
 str_canceled text := E'\r\nОперация отменена!';
 /* out_rc
 Успешно (Information): 64
-Exclamation:  48 
+Exclamation:  48
 Critical: 16
 */
 BEGIN
-out_res := 'f'; -- initial 
+out_res := 'f'; -- initial
 out_rc := 16; -- initial. Critical
 out_text := E'ВНИМАНИЕ!\r\nОтправка на кассу не прошла, повторите операцию и/или обратитесь в отдел ИТ';
-PERFORM 1 FROM cash.receipt_queue WHERE bill_no = arg_bill_no;
+-- status 0 - отправлен на кассу => ЗАПРЕТ повторного экспорта
+-- status 1 - получен чек => ЗАПРЕТ повторного экспорта
+PERFORM 1 FROM cash.receipt_queue WHERE bill_no = arg_bill_no and status in (0,1);
 IF FOUND THEN
     out_rc := 48; -- уже экспортирован, Excalmation
     out_text := E'Этот счет уже был отправлен на кассу!' || str_canceled;
 ELSE
+-- status 2 - счёт был отозван => ВОЗМОЖЕН повторный экспорт
     SELECT array(SELECT txt FROM (
     SELECT 10 AS weight, cash.frontol_order_header(arg_bill_no) AS txt
     union
@@ -35,7 +38,13 @@ ELSE
         end if;
         out_res := cash.sftp_text(arc_const('frontol_user'), arc_const('frontol_host'), 22, format('%s/order_%s.opn', loc_order_path, arg_bill_no), arg_order);
         if out_res then
-            insert into cash.receipt_queue(bill_no) values(arg_bill_no);
+            insert into cash.receipt_queue(bill_no) values(arg_bill_no)
+            ON CONFLICT (bill_no)
+            DO UPDATE
+                SET status = 0,
+                dt_insert = clock_timestamp(),
+                dt_import = NULL,
+                attempt_cnt = 0;
             out_rc := 64; -- Information
             out_text := 'Отправка на кассу прошла успешно';
         end if;

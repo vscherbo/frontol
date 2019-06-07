@@ -16,6 +16,8 @@ WITH (
 	OIDS=FALSE
 ) ;
 
+COMMENT ON COLUMN cash.receipt_queue.status IS '0 - отправлен на кассу, 1 - получен чек, 2 - отозван';
+
 -- Permissions
 
 ALTER TABLE cash.receipt_queue OWNER TO arc_energo;
