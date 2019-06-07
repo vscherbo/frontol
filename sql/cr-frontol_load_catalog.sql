@@ -7,7 +7,7 @@ DECLARE cmd character varying;
   err_str VARCHAR := '';
   wrk_dir text := '/var/lib/pgsql/frontol';
 BEGIN
-    cmd := format('/bin/sh %s/export_catalog_frontol5_debug.sh', wrk_dir);
+    cmd := format('/bin/sh %s/export_catalog_frontol5.sh', wrk_dir);
 
     IF cmd IS NULL 
     THEN 
