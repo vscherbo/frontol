@@ -27,7 +27,7 @@ ELSE
 -- status 2 - счёт был отозван => ВОЗМОЖЕН повторный экспорт
     SELECT array(SELECT txt FROM (
     SELECT 10 AS weight, cash.frontol_order_header(arg_bill_no) AS txt
-    union
+    union all
     SELECT 20 AS weight, cash.frontol_order_items(arg_bill_no) AS txt
     ORDER BY weight) AS f) INTO arg_order;
         -- RAISE NOTICE 'arg_order=%', arg_order;
