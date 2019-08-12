@@ -26,8 +26,9 @@ def remove_file(filename):
     try:
         os.remove(filename)
         logging.info('removed %s', filename)
-    except BaseException:
+    except:
         logging.exception('remove failed')
+        raise
 
 
 def move_file(src, dst):
@@ -37,8 +38,45 @@ def move_file(src, dst):
     try:
         shutil.move(src, dst)
         logging.info('moved %s to %s', src, dst)
-    except BaseException:
+    except:
         logging.exception('move failed')
+        raise
+
+def wait_pg_connect(arg_pg):
+    """
+    Loop until an connection to PG is available.
+    """
+    global conn
+    global curs
+    while True:
+        logging.info("Trying connection to PG.")
+        try:
+            # password='XXXX' - .pgpass
+            conn = psycopg2.connect("host='{}' dbname='arc_energo' \
+user='arc_energo'".format(arg_pg))
+            conn.set_session(autocommit=True)
+            curs = conn.cursor()
+            logging.info('PG %s connected', arg_pg)
+            break
+        except psycopg2.Error:
+            logging.warning("Connection failed. Retrying in 10 seconds")
+            time.sleep(10)
+
+
+def get_last_ft_num():
+    """ query last_ft_num from PG
+    """
+    loc_ft_num = None
+    try:
+        curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
+    except psycopg2.OperationalError as exc:
+        if exc.pgcode in ('57P01', '57P02', '57P03'):
+            wait_pg_connect(pg_srv)
+    except psycopg2.Error as exc:
+        logging.exception('PG error=%s', exc.pgcode)
+    else:
+        loc_ft_num = curs.fetchone()[0]
+    return loc_ft_num
 
 
 def import_trans():
@@ -58,9 +96,15 @@ def import_trans():
                 report_num = -1
             else:
                 logging.info('report_num=%s', report_num)
+                """
                 curs.execute('SELECT ft_id FROM cash.frontol_trans\
  order by ft_id desc limit 1;')
                 last_ft_num = curs.fetchone()[0]
+                """
+                while True:
+                    last_ft_num = get_last_ft_num()
+                    if last_ft_num:
+                        break
                 logging.info('last_ft_num=%s', last_ft_num)
 
                 for line in lines[3:]:
@@ -84,7 +128,7 @@ def import_trans():
  CSV delimiter ';';", csv_io)
                 conn.commit()
                 logging.info('\\COPY commited')
-            except BaseException:
+            except psycopg2.OperationalError:
                 logging.exception('\\COPY command')
                 move_file(out_file,
                           '{}/output-failed.csv-{:08}'.format(archive_dir,
@@ -100,8 +144,9 @@ def import_trans():
             move_file(src_file,
                       '{}/frontol_receipts.txt-{:08}'.format(archive_dir,
                                                              report_num))
-    except BaseException:
+    except:
         logging.exception('import_trans')
+        raise
 
 
 class FrontolFlagHandler(PatternMatchingEventHandler):
@@ -160,12 +205,17 @@ if __name__ == '__main__':
     observer.start()
 
     pg_srv = config['PG']['pg_srv']
+    conn = None
+    curs =None
     # password='XXXX' - .pgpass
+    wait_pg_connect(pg_srv)
+    """
     conn = psycopg2.connect("host='{}' dbname='arc_energo'\
  user='arc_energo'".format(pg_srv))
     conn.set_session(autocommit=True)
     curs = conn.cursor()
     logging.info('PG %s connected', pg_srv)
+    """
 
     try:
         while True:
