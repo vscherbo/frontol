@@ -46,16 +46,16 @@ def wait_pg_connect(arg_pg):
     """
     Loop until an connection to PG is available.
     """
-    global conn
-    global curs
+    global CONN
+    global CURS
     while True:
         logging.info("Trying connection to PG.")
         try:
             # password='XXXX' - .pgpass
-            conn = psycopg2.connect("host='{}' dbname='arc_energo' \
+            CONN = psycopg2.connect("host='{}' dbname='arc_energo' \
 user='arc_energo'".format(arg_pg))
-            conn.set_session(autocommit=True)
-            curs = conn.cursor()
+            CONN.set_session(autocommit=True)
+            CURS = CONN.cursor()
             logging.info('PG %s connected', arg_pg)
             break
         except psycopg2.Error:
@@ -68,14 +68,14 @@ def get_last_ft_num():
     """
     loc_ft_num = None
     try:
-        curs.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
+        CURS.execute('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;')
     except psycopg2.OperationalError as exc:
         if exc.pgcode in ('57P01', '57P02', '57P03'):
-            wait_pg_connect(pg_srv)
+            wait_pg_connect(PG_SRV)
     except psycopg2.Error as exc:
         logging.exception('PG error=%s', exc.pgcode)
     else:
-        loc_ft_num = curs.fetchone()[0]
+        loc_ft_num = CURS.fetchone()[0]
     return loc_ft_num
 
 
@@ -84,29 +84,25 @@ def import_trans():
     import Frontol transactions into PG
     """
     try:
-        src_file = trans_dir + '/frontol_receipts.txt'
-        out_file = csv_dir + '/output.csv'
-        with open(src_file, 'r', encoding="cp1251") as tr_file,\
-                open(out_file, 'w') as fcsv:
-            csv_list = []
+        src_file = TRANS_DIR + '/frontol_receipts.txt'
+        out_file = CSV_DIR + '/output.csv'
+        csv_list = []
+        with open(src_file, 'r', encoding="cp1251") as tr_file:
             lines = tr_file.readlines()
-            try:
-                report_num = int(lines[2].strip())
-            except IndexError:
-                report_num = -1
-            else:
-                logging.info('report_num=%s', report_num)
-                """
-                curs.execute('SELECT ft_id FROM cash.frontol_trans\
- order by ft_id desc limit 1;')
-                last_ft_num = curs.fetchone()[0]
-                """
-                while True:
-                    last_ft_num = get_last_ft_num()
-                    if last_ft_num:
-                        break
-                logging.info('last_ft_num=%s', last_ft_num)
 
+        try:
+            report_num = int(lines[2].strip())
+        except IndexError:
+            report_num = -1
+        else:
+            logging.info('report_num=%s', report_num)
+            while True:
+                last_ft_num = get_last_ft_num()
+                if last_ft_num:
+                    break
+            logging.info('last_ft_num=%s', last_ft_num)
+
+            with open(out_file, 'w') as fcsv:
                 for line in lines[3:]:
                     # decimal point instead of comma
                     line_fields = line.strip().replace(',', '.').split(';')
@@ -124,25 +120,25 @@ def import_trans():
         if csv_list:
             csv_io = io.StringIO('\n'.join(csv_list))
             try:
-                curs.copy_expert("COPY cash.frontol_trans FROM STDIN WITH\
+                CURS.copy_expert("COPY cash.frontol_trans FROM STDIN WITH\
  CSV delimiter ';';", csv_io)
-                conn.commit()
+                CONN.commit()
                 logging.info('\\COPY commited')
             except psycopg2.OperationalError:
                 logging.exception('\\COPY command')
                 move_file(out_file,
-                          '{}/output-failed.csv-{:08}'.format(archive_dir,
+                          '{}/output-failed.csv-{:08}'.format(ARCHIVE_DIR,
                                                               report_num))
             else:  # \COPY commited
                 remove_file(out_file)
                 move_file(src_file,
-                          '{}/frontol_receipts.txt-{:08}'.format(archive_dir,
+                          '{}/frontol_receipts.txt-{:08}'.format(ARCHIVE_DIR,
                                                                  report_num))
         else:
             logging.info('An empty csv_list, skipping')
             remove_file(out_file)
             move_file(src_file,
-                      '{}/frontol_receipts.txt-{:08}'.format(archive_dir,
+                      '{}/frontol_receipts.txt-{:08}'.format(ARCHIVE_DIR,
                                                              report_num))
     except:
         logging.exception('import_trans')
@@ -187,41 +183,34 @@ class FrontolFlagHandler(PatternMatchingEventHandler):
 
 
 if __name__ == '__main__':
-    conf_file_name = "ftd.conf"
-    config = configparser.ConfigParser(allow_no_value=True)
-    config.read(conf_file_name)
-    watch_dir = config['dirs']['watch_dir']
-    trans_dir = config['dirs']['trans_dir']
-    csv_dir = config['dirs']['csv_dir']
-    log_dir = config['dirs']['log_dir']
-    archive_dir = config['dirs']['archive_dir']
-    numeric_level = logging.INFO
-    logging.basicConfig(filename=log_dir + '/ftd.log', format=LOG_FORMAT,
-                        level=numeric_level)
+    CONF_FILE_NAME = "ftd.conf"
+    CONFIG = configparser.ConfigParser(allow_no_value=True)
+    CONFIG.read(CONF_FILE_NAME)
+    WATCH_DIR = CONFIG['dirs']['watch_dir']
+    TRANS_DIR = CONFIG['dirs']['trans_dir']
+    CSV_DIR = CONFIG['dirs']['csv_dir']
+    LOG_DIR = CONFIG['dirs']['log_dir']
+    ARCHIVE_DIR = CONFIG['dirs']['archive_dir']
+    NUMERIC_LEVEL = logging.INFO
+    logging.basicConfig(filename=LOG_DIR + '/ftd.log', format=LOG_FORMAT,
+                        level=NUMERIC_LEVEL)
     logging.info('config read')
 
-    observer = Observer()
-    observer.schedule(FrontolFlagHandler(), path=watch_dir)
-    observer.start()
+    OBSERVER = Observer()
+    OBSERVER.schedule(FrontolFlagHandler(), path=WATCH_DIR)
+    OBSERVER.start()
 
-    pg_srv = config['PG']['pg_srv']
-    conn = None
-    curs =None
+    PG_SRV = CONFIG['PG']['PG_SRV']
+    CONN = None
+    CURS = None
     # password='XXXX' - .pgpass
-    wait_pg_connect(pg_srv)
-    """
-    conn = psycopg2.connect("host='{}' dbname='arc_energo'\
- user='arc_energo'".format(pg_srv))
-    conn.set_session(autocommit=True)
-    curs = conn.cursor()
-    logging.info('PG %s connected', pg_srv)
-    """
+    wait_pg_connect(PG_SRV)
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         logging.info('Exiting')
-        observer.stop()
+        OBSERVER.stop()
 
-    observer.join()
+    OBSERVER.join()
