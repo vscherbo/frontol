@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
     A data exchange with Frontol 5
@@ -152,6 +152,10 @@ class FrontolFlagHandler(PatternMatchingEventHandler):
     # patterns = ["*/frontol_*_flag.txt"]
     patterns = ["*"]
 
+    def __init__(self):
+        super(FrontolFlagHandler, self).__init__(ignore_directories=True)
+        self.frontol_receipts_flag = 'frontol_receipts_flag.txt'
+
     def process(self, event):
         """
         event.event_type
@@ -161,10 +165,15 @@ class FrontolFlagHandler(PatternMatchingEventHandler):
         event.src_path
             path/to/observed/file
         """
-        # the file will be processed there
+
+        """ needless cause ignore_directories=True
         if not event.is_directory:
             logging.info('file %s %s', event.src_path, event.event_type)
-        if 'frontol_receipts_flag.txt' in event.src_path \
+        """
+        # the file will be processed there
+        logging.info('file %s %s', event.src_path, event.event_type)
+        # if 'frontol_receipts_flag.txt' in event.src_path \
+        if self.frontol_receipts_flag in event.src_path \
            and (event.event_type == 'moved' or event.event_type == 'deleted'):
             logging.info('start import transactions')
             import_trans()
