@@ -31,11 +31,13 @@ def main():
     ft_app = FTapp('vm-pg-devel.arc.world', 'arc_energo')
     # password='XXXX' - .pgpass
     ft_app.wait_pg_connect()
+    last_num = ft_app.get_last_ft_num()
+    logging.info('last_num=%s', last_num)
 
 
 if __name__ == '__main__':
     LOG_DIR = './'
-    logging.basicConfig(filename=LOG_DIR + '/ftd.log', format=LOG_FORMAT,
+    logging.basicConfig(filename=LOG_DIR + '/ft_app.log', format=LOG_FORMAT,
                         level=logging.DEBUG)
     logging.info('config read')
     main()
