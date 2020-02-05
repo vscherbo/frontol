@@ -74,6 +74,7 @@ class FTImportTrans(ft_app.FTapp):
     def create_csv_out(self, out_file):
         """ Parse lines and write onto CSV file
         """
+        self.csv_list = []
         with open(out_file, 'w') as fcsv:
             for line in self.lines[3:]:
                 # decimal point instead of comma
