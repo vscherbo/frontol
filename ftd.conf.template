@@ -7,4 +7,4 @@ archive_dir = /opt/atol/archive
 
 [PG]
 pg_srv = vm-pg-devel.arc.world
-
+user_name = arc_energo
