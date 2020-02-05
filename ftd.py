@@ -195,10 +195,10 @@ class FrontolFlagHandler(PatternMatchingEventHandler):
            and (event.event_type == 'moved' or event.event_type == 'deleted'):
             time.sleep(5)
             logging.info('start import transactions')
-            try:
-                import_trans()
-            except:
-                logging.info('import_trans() failed')
+            #try:
+            import_trans()
+            #except:
+            #    logging.info('import_trans() failed')
                 #raise
 
     def on_modified(self, event):
