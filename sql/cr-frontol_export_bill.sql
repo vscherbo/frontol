@@ -47,6 +47,8 @@ ELSE
                 attempt_cnt = 0;
             out_rc := 64; -- Information
             out_text := 'Отправка на кассу прошла успешно';
+        else
+            RAISE NOTICE 'ERROR: res=%, rc=%, text=%', out_res, out_rc, out_text;
         end if;
 
 END IF;
