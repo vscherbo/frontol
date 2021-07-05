@@ -20,7 +20,8 @@ class FTapp(pg_app.PGapp):
         """
         loc_ft_num = None
         while True:
-            if self.do_query('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;'):
+            if self.do_query('SELECT ft_id FROM cash.frontol_trans order by ft_id desc limit 1;',
+                             reconnect=True):
                 break
         loc_ft_num = self.curs.fetchone()[0]
         return loc_ft_num
