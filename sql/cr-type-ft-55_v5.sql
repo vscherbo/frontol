@@ -1,5 +1,5 @@
-drop type cash.t_ft55_f6;
-create type cash.t_ft55_f6 as (
+drop type cash.t_ft55;
+create type cash.t_ft55 as (
 cli_cards text, -- 08 Номера карт клиента через |
 text01   text, -- 09 Коды значений разрезов через запятую
 num01    numeric, -- 10 всегда 0
@@ -36,6 +36,5 @@ f40 text,
 f41 text,
 f42 text,
 f43 text,
-f44 text,
-f45 text
+f44 text
 );

@@ -21,3 +21,8 @@ COMMENT ON COLUMN cash.receipt_queue.status IS '0 - отправлен на ка
 -- Permissions
 
 ALTER TABLE cash.receipt_queue OWNER TO arc_energo;
+
+
+-- несколько касс
+ALTER TABLE cash.receipt_queue ADD cash_tag varchar NOT NULL DEFAULT 'ИПБ';
+CREATE UNIQUE INDEX receipt_queue_bill_no_idx ON cash.receipt_queue USING btree (bill_no, cash_tag);

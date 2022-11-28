@@ -1,5 +1,5 @@
-drop type cash.t_ft60_f6;
-create type cash.t_ft60_f6 as (
+drop type cash.t_ft60;
+create type cash.t_ft60 as (
 f08 text,
 f09 text,
 shift_takings  numeric, -- 10 Выручка за смену 
@@ -36,6 +36,5 @@ f40 text,
 f41 text,
 f42 text,
 f43 text,
-f44 text,
-f45 text
+f44 text
 );
