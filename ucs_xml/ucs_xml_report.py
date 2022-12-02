@@ -106,12 +106,29 @@ class UcsApp(log_app.LogApp):
         #logging.info('password=%s', self.config['UCS']['password'])
         password.send_keys(self.config['UCS']['password'])
         password.send_keys(Keys.TAB)
-        self.drv.save_screenshot('screen-pass.png')
+        #self.drv.save_screenshot('screen-pass.png')
 
         enter = form.find_element(By.CLASS_NAME, "btn__in")
         logging.info('enter=%s', enter)
         enter.click()
-        self.drv.save_screenshot('screen-enter.png') # save a screenshot to disk
+        self.drv.save_screenshot('screen-enter.png')
+
+        element = self.wait_table()
+        if element is not None:
+            self.parse_table(element)
+        else:
+            self.query_xml()
+            element = self.wait_table()
+            if element is not None:
+                self.parse_table(element)
+            else:
+                logging.warning('Getting report was failed')
+
+
+    def wait_table(self):
+        """ Wait a table of reports """
+
+        element = None
 
         try:
             element = WebDriverWait(self.drv, self.timeout*2).until(
@@ -122,15 +139,10 @@ class UcsApp(log_app.LogApp):
                 logging.info('req_sent, but report is not ready yet')
             else:
                 logging.info('There are not prepared reports')
-                self.query_xml()
+                #self.query_xml()
         else:
-            self.parse_table(element)
-            #self.drv.save_screenshot('screen-table.png')
-            #tds = element.find_elements(By.TAG_NAME, "td")
-            #self.download_xml(tds)
-            #self.drv.save_screenshot('screen-final.png')
-        finally:
-            self.drv.quit()
+            pass
+        return element
 
     def parse_table(self, tab_em):
         """ Parse a table of reports """
@@ -148,6 +160,7 @@ class UcsApp(log_app.LogApp):
         logging.info('loc_req=%s', loc_req)
         self.req_sent = True
         self.drv.get(loc_req)
+        time.sleep(self.timeout) #  TOD0 wait, not sleep
 
     def download_xml(self, tds):
         """ Downaload a prepared xml report """
@@ -169,7 +182,7 @@ class UcsApp(log_app.LogApp):
                         href = link.get_attribute("href")
                         logging.info(href)
                         link.click()
-                        time.sleep(5)
+                        time.sleep(self.timeout)
 
 def req_date(arg_dt):
     """ Convert date from YYYY-MM-DD to DD.MM.YYYY """

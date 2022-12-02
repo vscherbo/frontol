@@ -1,0 +1,12 @@
+[UCS]
+site=https://office.ucscards.ru
+url=office/reports/index.php
+params=&type=tx&dates=txn_date&page=1&submit=показать
+login=<login>
+password=<password>
+timeout=5
+
+[DIRS]
+#base_dir=.
+xml_dir=01-xml
+csv_dir=02-csv
