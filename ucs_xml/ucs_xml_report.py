@@ -113,14 +113,17 @@ class UcsApp(log_app.LogApp):
         enter.click()
         self.drv.save_screenshot('screen-enter.png')
 
-        element = self.wait_table()
-        if element is not None:
-            self.parse_table(element)
+        link = self.wait_table()
+        if link is not None:
+            logging.info('try to prepared download_xml, type(link)=%s', type(link))
+            #logging.info('try to prepared download_xml, link.text=%s', link.text)
+            self.download_xml(link)
         else:
             self.query_xml()
-            element = self.wait_table()
-            if element is not None:
-                self.parse_table(element)
+            link = self.wait_table()
+            if link is not None:
+                logging.info('try to download_xml after query_xml, type(link)=%s', type(link))
+                self.download_xml(link)
             else:
                 logging.warning('Getting report was failed')
 
@@ -129,6 +132,7 @@ class UcsApp(log_app.LogApp):
         """ Wait a table of reports """
 
         element = None
+        link = None
 
         try:
             element = WebDriverWait(self.drv, self.timeout*2).until(
@@ -139,17 +143,16 @@ class UcsApp(log_app.LogApp):
                 logging.info('req_sent, but report is not ready yet')
             else:
                 logging.info('There are not prepared reports')
-                #self.query_xml()
         else:
-            pass
-        return element
+            link = self.find_report(element)
+        return link
 
-    def parse_table(self, tab_em):
-        """ Parse a table of reports """
-        self.drv.save_screenshot('screen-table.png')
-        tds = tab_em.find_elements(By.TAG_NAME, "td")
-        self.download_xml(tds)
-        self.drv.save_screenshot('screen-final.png')
+    #def parse_table(self, tab_em):
+    #    """ Parse a table of reports """
+    #    self.drv.save_screenshot('screen-table.png')
+    #    tds = tab_em.find_elements(By.TAG_NAME, "td")
+    #    self.download_xml(tds)
+    #    self.drv.save_screenshot('screen-final.png')
 
     def query_xml(self):
         """ Prepare an xml report """
@@ -162,27 +165,40 @@ class UcsApp(log_app.LogApp):
         self.drv.get(loc_req)
         time.sleep(self.timeout) #  TOD0 wait, not sleep
 
-    def download_xml(self, tds):
+    def find_report(self, tab_em):
         """ Downaload a prepared xml report """
         #dt_start = '2022-11-21'
         #dt_end = '2022-11-21'
+        ret_link = None
+        tds = tab_em.find_elements(By.TAG_NAME, "td")
         flg_period = False
+        links = []
+        # find latest!
         for tdi in tds:
             if REP_TABLE.format(self.args.dt_start, self.args.dt_end) in tdi.text:
                 logging.info('period=%s', tdi.text)
                 flg_period = True
             if flg_period and 'xml' in tdi.text:
-                logging.info('xml=%s', tdi.text)
+                logging.info('xml found in tdi.text=%s', tdi.text)
                 flg_period = False
-                #logging.info(tdi.text)
-                links = tdi.find_elements(By.TAG_NAME, "a")
-                for link in links:
-                    # 2022-11-21 - 2022-11-21
-                    if 'xml' in link.text:
-                        href = link.get_attribute("href")
-                        logging.info(href)
-                        link.click()
-                        time.sleep(self.timeout)
+                link = tdi.find_elements(By.TAG_NAME, "a")
+                links.append(link)
+        for link in links:  # get xml
+            for elem_a in link:
+                logging.info('checking xml in link.text=%s', elem_a.text)
+                if 'xml' in elem_a.text:
+                    ret_link = elem_a
+        return ret_link
+
+    def download_xml(self, link):
+        """ Downaload a prepared xml report """
+        if 'xml' in link.text:
+            href = link.get_attribute("href")
+            logging.info(href)
+            link.click()
+            time.sleep(self.timeout)
+        else:
+            logging.warning('in link.text=%s xml not found', link.text)
 
 def req_date(arg_dt):
     """ Convert date from YYYY-MM-DD to DD.MM.YYYY """
