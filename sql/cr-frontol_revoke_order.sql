@@ -16,6 +16,7 @@ loc_dev_prefix text;
 BEGIN                                                                            
     -- PERFORM 1 FROM cash.receipt_queue WHERE bill_no = arg_bill_no and status = 0;
 
+    RAISE NOTICE 'arg_bill_no=%, arg_cash_tag=%', arg_bill_no, arg_cash_tag;
     if arg_cash_tag = 'ИПБ' then
         loc_const_path = 'frontol_path';
         loc_const_host = 'frontol_host';
