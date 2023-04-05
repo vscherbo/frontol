@@ -54,9 +54,10 @@ class UcsApp(log_app.LogApp):
 
         prefs = {"download.default_directory" : self.xml_dir}
         opts.add_experimental_option("prefs", prefs)
+        opts.add_argument("--disable-dev-shm-usage")
+
         opts.headless = True
-        #drv = webdriver.Chrome(options=opts, executable_path=r'C:\path\to\chromedriver.exe')
-        drv = webdriver.Chrome(options=opts)
+        drv = webdriver.Chrome(options=opts, executable_path=r'/usr/local/bin/chromedriver')
         drv.set_window_size(1920, 1080)
         return drv
 
@@ -111,7 +112,7 @@ class UcsApp(log_app.LogApp):
         enter = form.find_element(By.CLASS_NAME, "btn__in")
         logging.info('enter=%s', enter)
         enter.click()
-        self.drv.save_screenshot('screen-enter.png')
+        #self.drv.save_screenshot('screen-enter.png')
 
         link = self.wait_table()
         if link is not None:
@@ -122,6 +123,7 @@ class UcsApp(log_app.LogApp):
             self.query_xml()
             link = self.wait_table()
             if link is not None:
+                self.drv.save_screenshot('screen-after-query.png')
                 logging.info('try to download_xml after query_xml, type(link)=%s', type(link))
                 self.download_xml(link)
             else:
