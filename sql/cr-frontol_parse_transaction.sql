@@ -18,7 +18,10 @@ WITH rcpt AS (SELECT ft_doc_num, SUM(ft_sum)AS ft_sum, payment_type
 INSERT INTO "ОплатыНТУ"("Счет", "ДатаПоступления", "Сумма", ps_id2, "Примечание")
 SELECT 
     -- order_id::integer
-    COALESCE (order_id::integer, cash.origin_order_id(arg_ft_doc_num))
+    COALESCE (order_id::integer, -- cash.origin_order_id(arg_ft_doc_num)
+        (SELECT order_id::integer FROM cash.vw_ft_close_doc_f6 WHERE ft_doc_num = (
+            SELECT f25::integer FROM cash.vw_ft_close_doc_f6 WHERE ft_doc_num = arg_ft_doc_num)) -- создан на основании документа
+    )
     , ft_date -- f36::date
     , p.ft_sum
     , CASE WHEN '1' = p.payment_type THEN 4 WHEN '2' = p.payment_type THEN 5 ELSE -1 END AS ps_id2
