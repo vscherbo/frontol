@@ -8,6 +8,7 @@ $BODY$
 DECLARE
 loc_bill_no integer;
 loc_firm varchar;
+loc_dt timestamp;
 BEGIN
 
 WITH rcpt AS (SELECT ft_doc_num, SUM(ft_sum)AS ft_sum, payment_type
@@ -32,12 +33,23 @@ FROM cash.vw_ft_close_doc_f6 c
     CROSS JOIN rcpt p -- ON p.ft_doc_num = arg_ft_doc_num
     WHERE c.ft_doc_num = arg_ft_doc_num ;
 
+-- SELECT (ft_date + ft_time) INTO loc_dt
+SELECT ft_date INTO loc_dt
+FROM cash.vw_ft_fisc_payment_f6                                              
+WHERE ft_type IN (40,41) --  без 43!                                         
+AND ft_doc_num = arg_ft_doc_num
+LIMIT 1;
+
 SELECT order_id::integer INTO loc_bill_no FROM cash.vw_ft_close_doc_f6 c WHERE c.ft_doc_num = arg_ft_doc_num;
 RAISE NOTICE 'loc_bill_no=%', loc_bill_no;
 SELECT "фирма" into loc_firm FROM "Счета" WHERE "№ счета" = loc_bill_no;
 RAISE NOTICE 'loc_firm=%', loc_firm;
 UPDATE cash.receipt_queue SET status=1, dt_import=clock_timestamp() WHERE bill_no = loc_bill_no and cash_tag = loc_firm;
-UPDATE "Счета" SET "Накладная" = now()::date::timestamp, "Статус" = 10, "Отгружен" = 't', "Оплачен" = 't', ps_id = 4 WHERE "№ счета" = loc_bill_no;
+UPDATE "Счета" SET 
+-- "Накладная" = now()::date::timestamp
+"Накладная" = loc_dt
+, "Статус" = 10, "Отгружен" = 't', "Оплачен" = 't', ps_id = 4
+WHERE "№ счета" = loc_bill_no;
 
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
